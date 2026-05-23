@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="external.css?v=3">
+    <link rel="stylesheet" href="assets/toast.css">
+    <title>Register</title>
+</head>
+<body class="public-page">
+    <div class="parent">
+        <div class="child">
+            <form id="signupform">
+                <h2>Create Account</h2>
+                <p class="auth-subtitle">Register your student account first. You will complete the rest of your profile after this step.</p>
+                
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+                
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="8+ chars, uppercase, lowercase, number, symbol" required>
+                
+                <label for="confirmpassword">Confirm Password</label>
+                <input type="password" id="confirmpassword" required>
+                
+                <div class="terms-box">
+                    <input type="checkbox" id="termsCheck" required>
+                    <label for="termsCheck">
+                        I agree to the system Terms and Conditions, school rules, and responsible use of my account details before registration.
+                    </label>
+                </div>
+                
+                <div class="auth-actions">
+                    <button type="submit" id="signupBtn">Register</button>
+                </div>
+            </form>
+            <h4 id="confirmpasswordError"></h4>
+            <h5>Already have an account? <a href="login.html">Login here</a></h5>
+            <h6><a href="index.php">← Back to Home</a></h6>
+        </div>
+    </div>
+</body>
+<script src="assets/toast.js"></script>
+<script>
+document.getElementById("signupform").addEventListener("submit", function(e){
+  e.preventDefault();
+
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirmpassword").value;
+  const message = document.getElementById("confirmpasswordError");
+  const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+  const termsChecked = document.getElementById("termsCheck").checked;
+  const btn = document.getElementById("signupBtn");
+
+  // Reset message
+  message.innerText = "";
+
+  // Validate passwords match
+  if (password !== confirmPassword) {
+    message.innerText = "Passwords do not match.";
+    showToast("Passwords do not match.", "error");
+    return;
+  }
+
+  // Validate password strength
+  if (!strongPassword.test(password)) {
+    message.innerText = "Use 8+ chars with uppercase, lowercase, number, and symbol.";
+    showToast("Use 8+ chars with uppercase, lowercase, number, and symbol.", "error");
+    return;
+  }
+
+  // Validate terms
+  if (!termsChecked) {
+    message.innerText = "You must accept the Terms and Conditions before registration.";
+    showToast("You must accept the Terms and Conditions before registration.", "error");
+    return;
+  }
+
+  // Disable button
+  btn.disabled = true;
+  btn.innerText = "Creating...";
+
+  const data = {
+    email: document.getElementById("email").value,
+    password: password,
+  };
+
+  fetch("API/signup.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Server error: " + res.status);
+    return res.json();
+  })
+  .then(response => {
+    message.innerText = response.message;
+    showToast(response.message, response.status === "success" ? "success" : "error");
+
+    if(response.status === "success"){
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 1500);
+    } else {
+      btn.disabled = false;
+      btn.innerText = "Register";
+    }
+  })
+  .catch((error) => {
+    message.innerText = "An error occurred. Please try again. " + error;
+    showToast("Registration failed. " + error, "error");
+    btn.disabled = false;
+    btn.innerText = "Register";
+  });
+});
+</script>
+</html>

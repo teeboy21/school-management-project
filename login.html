@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="external.css?v=3">
+    <link rel="stylesheet" href="assets/toast.css">
+    <title>Login</title>
+    <style>
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+            text-align: center;
+        }
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fbbf24;
+        }
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+    </style>
+</head>
+<body class="public-page">
+    <div class="parent">
+        <div class="child">
+            <form id="loginform">
+                <h2>Welcome Back</h2>
+                <p class="auth-subtitle">Sign in with your school account to continue to the system dashboard.</p>
+
+                <div class="form-group">
+                    <label for="emaill">Email Address</label>
+                    <input type="email" id="emaill" placeholder="Enter your email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="passwordl">Password</label>
+                    <input type="password" id="passwordl" placeholder="Enter your password" required>
+                </div>
+
+                <div id="statusMessage"></div>
+
+                <div class="auth-actions">
+                    <button type="submit" id="login">Login</button>
+                </div>
+            </form>
+            
+            <div id="error" class="message"></div>
+            
+            <h5>Don't have an account? <a href="signup.html">Register here</a></h5>
+            <h6><a href="index.php">← Back to Home</a></h6>
+            <h6><a href="resetpassword.php">Forgot Password?</a></h6>
+        </div>
+    </div>
+</body>
+<script src="assets/toast.js"></script>
+<script>
+document.getElementById("loginform").addEventListener("submit", function(e){
+  e.preventDefault();
+
+  const btn = document.getElementById("login");
+  const errorDiv = document.getElementById("error");
+  const statusDiv = document.getElementById("statusMessage");
+  
+  btn.disabled = true;
+  btn.innerText = "Logging in...";
+  errorDiv.innerText = "";
+  statusDiv.innerHTML = "";
+  statusDiv.style.display = "none";
+
+  const data = {
+    email: document.getElementById("emaill").value,
+    password: document.getElementById("passwordl").value,
+  };
+
+  fetch("API/login.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Server error: " + res.status);
+    return res.json();
+  })
+  .then(response => {
+    if(response.status === "success"){
+      showToast(response.message, "success");
+      setTimeout(() => {
+        // Student with account_created status goes to complete profile
+        if(response.role === "student" && response.accntstatus === "account_created"){
+          window.location.href = "studentcomplete.php";
+        } else {
+          // Use dashboard_url from API response
+          window.location.href = response.dashboard_url;
+        }
+      }, 1000);
+    } else {
+      // Show error message
+      errorDiv.innerText = response.message;
+      showToast(response.message, "error");
+      
+      // Show specific status message for students
+      if(response.role === "student"){
+        let statusText = "";
+        let statusClass = "";
+        
+        switch(response.accntstatus) {
+          case "account_created":
+            statusText = "Your account is created but profile is incomplete.";
+            statusClass = "status-pending";
+            break;
+          case "profile_completed":
+            statusText = "Your profile is pending admin approval. Please wait or contact the administration.";
+            statusClass = "status-pending";
+            break;
+          case "approved":
+            statusText = "Your account is approved.";
+            statusClass = "status-success";
+            break;
+          default:
+            statusText = "Account status: " + response.accntstatus;
+            statusClass = "status-error";
+        }
+        
+        statusDiv.innerHTML = `<div class="${statusClass}">${statusText}</div>`;
+        statusDiv.style.display = "block";
+      }
+      
+      btn.disabled = false;
+      btn.innerText = "Login";
+    }
+  })
+  .catch(error => {
+    errorDiv.innerText = "Connection error: " + error;
+    showToast("Login failed. " + error, "error");
+    btn.disabled = false;
+    btn.innerText = "Login";
+  });
+});
+</script>
+</html>
+
+
+
