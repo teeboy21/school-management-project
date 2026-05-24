@@ -13,11 +13,24 @@ if (!$user_id) {
     exit;
 }
 
+$assignments_enabled = true;
+$en_r = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'assignments_enabled'");
+if ($en_r && ($en_row = $en_r->fetch_assoc()) && $en_row['setting_value'] === 'off') {
+    $assignments_enabled = false;
+}
+
 $upload_dir = __DIR__ . '/../uploads/submissions/';
 if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
+$allowed_exts = ['pdf','doc','docx','ppt','pptx','xls','xlsx','txt','zip','rar','7z','jpg','jpeg','png','gif','csv','odt','ods'];
+$max_file_size = 10 * 1024 * 1024; // 10MB
+
 /* ================= SUBMIT ASSIGNMENT (STUDENT) ================= */
 if ($action === 'submit' && $role === 'student') {
+    if (!$assignments_enabled) {
+        echo json_encode(["status" => "error", "message" => "Assignments module is disabled"]);
+        exit;
+    }
     $assignment_id = (int)($_POST['assignment_id'] ?? 0);
 
     if (!$assignment_id) {
@@ -51,7 +64,23 @@ if ($action === 'submit' && $role === 'student') {
     $file_size = null;
 
     if (isset($_FILES['file']) && $_FILES['file']['error'] === 0) {
-        $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed_exts)) {
+            echo json_encode(["status" => "error", "message" => "File type .$ext is not allowed"]);
+            exit;
+        }
+        if ($_FILES['file']['size'] > $max_file_size) {
+            echo json_encode(["status" => "error", "message" => "File exceeds maximum size of 10MB"]);
+            exit;
+        }
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $_FILES['file']['tmp_name']);
+        finfo_close($finfo);
+        $blocked = ['text/x-php', 'application/x-httpd-php', 'application/x-httpd-php-source', 'text/javascript', 'application/javascript'];
+        if (in_array($mime, $blocked)) {
+            echo json_encode(["status" => "error", "message" => "Executable files are not allowed"]);
+            exit;
+        }
         $safe_name = time() . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
         $dest = $upload_dir . $safe_name;
         if (move_uploaded_file($_FILES['file']['tmp_name'], $dest)) {

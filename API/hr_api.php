@@ -216,7 +216,7 @@ if ($action === 'get_contracts') {
         exit;
     }
     
-    $status = $_GET['status'] ?? '';
+    $status = $conn->real_escape_string($_GET['status'] ?? '');
     $sql = "SELECT * FROM supplier_contracts WHERE 1=1";
     if ($status) $sql .= " AND status = '$status'";
     $sql .= " ORDER BY end_date ASC";

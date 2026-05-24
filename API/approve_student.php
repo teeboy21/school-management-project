@@ -24,6 +24,39 @@ $stmt->bind_param("i", $userId);
 if ($stmt->execute()) {
     log_audit($conn, $_SESSION['user_id'] ?? 0, 'student_approved', 'registration', 'student', $userId, []);
 
+    // Auto-assign student number and class
+    $student = $conn->query("SELECT s.grade, s.id AS sid, s.student_number FROM students s WHERE s.user_id = $userId")->fetch_assoc();
+    if ($student) {
+        $updates = [];
+        $sid = (int)$student['sid'];
+
+        if (empty($student['student_number'])) {
+            do {
+                $student_number = 'STU' . mt_rand(100000000000, 999999999999);
+                $chk = $conn->query("SELECT id FROM students WHERE student_number = '$student_number'");
+            } while ($chk && $chk->num_rows > 0);
+            $updates[] = "student_number = '" . $conn->real_escape_string($student_number) . "'";
+        }
+
+        $grade_id = null;
+        if (is_numeric($student['grade'])) {
+            $grade_id = intval($student['grade']);
+        } else {
+            $g = $conn->query("SELECT id FROM grades WHERE name = '" . $conn->real_escape_string($student['grade']) . "'")->fetch_assoc();
+            if ($g) $grade_id = (int)$g['id'];
+        }
+        if ($grade_id) {
+            $c = $conn->query("SELECT id FROM classes WHERE grade_id = $grade_id LIMIT 1")->fetch_assoc();
+            if ($c) {
+                $updates[] = "class_id = {$c['id']}";
+            }
+        }
+
+        if (!empty($updates)) {
+            $conn->query("UPDATE students SET " . implode(', ', $updates) . " WHERE id = $sid");
+        }
+    }
+
     $u = $conn->query("SELECT u.email, COALESCE(s.fullname, u.email) AS fullname FROM user u LEFT JOIN students s ON s.user_id = u.id WHERE u.id = $userId")->fetch_assoc();
     if ($u) email_student_approved($conn, $u['email'], $u['fullname']);
 

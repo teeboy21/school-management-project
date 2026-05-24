@@ -42,7 +42,7 @@ if ($action === 'submit_budget') {
     $amount = (float)$budget['allocated_amount'];
     $ref_type = 'budget';
     $ref_id = $budget_id;
-    $notes = 'Budget approval: ' . $budget['category'] . ' (' . $budget['fiscal_year'] . ')';
+    $notes = $conn->real_escape_string('Budget approval: ' . $budget['category'] . ' (' . $budget['fiscal_year'] . ')');
 
     // Check existing request
     $existing = $conn->query("SELECT id FROM approval_requests WHERE reference_type = '$ref_type' AND reference_id = $ref_id AND status NOT IN ('cancelled','rejected')");

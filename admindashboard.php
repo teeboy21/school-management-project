@@ -36,6 +36,7 @@ $teacher_assignments = (int) (mysqli_fetch_assoc(mysqli_query($conn, "SELECT COU
             <li><a href="approvesubject.php">Approve Subjects</a></li>
             <li><a href="projects.php">Development Projects</a></li>
             <li><a href="events.php">Events</a></li>
+            <li><a href="edit_student_subjects.php">Edit Student Subjects</a></li>
             <li><a href="reports.php">Reports</a></li>
             <li><a href="registeradmin.php">Register Admin</a></li>
             <li><a href="manage_accounts.php">Manage Accounts</a></li>

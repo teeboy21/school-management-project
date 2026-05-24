@@ -14,6 +14,14 @@ $dashboard_url = $dash_map[$role] ?? 'login.html';
 
 require __DIR__ . '/config.php';
 
+$assignments_enabled = true;
+$stmt = $conn->prepare("SELECT setting_value FROM settings WHERE setting_key = 'assignments_enabled'");
+$stmt->execute();
+$row = $stmt->get_result()->fetch_assoc();
+if ($row && $row['setting_value'] === 'off') {
+    $assignments_enabled = false;
+}
+
 $teacher_sidebar = [
     ['label' => 'Dashboard', 'href' => 'teacherdashboard.php'],
     ['label' => 'My Classes', 'href' => 'myclassesteacher.php'],
@@ -118,7 +126,14 @@ if ($role === 'teacher') {
         </div>
     </header>
     <section class="app-content" id="appContent">
+        <?php if ($assignments_enabled): ?>
         <div id="loadingState" class="empty-state" style="padding:60px 0">Loading assignments...</div>
+        <?php else: ?>
+        <div class="hero-card">
+            <h2>Assignments</h2>
+            <p>The assignments module is currently disabled by the administrator.</p>
+        </div>
+        <?php endif; ?>
     </section>
 </main>
 </div>
@@ -135,6 +150,7 @@ if ($role === 'teacher') {
 </div>
 
 <script src="assets/toast.js"></script>
+<?php if ($assignments_enabled): ?>
 <script>
 const role = <?= json_encode($role) ?>;
 const appContent = document.getElementById("appContent");
@@ -508,5 +524,6 @@ function closeGradeModal() {
 
 loadPage();
 </script>
+<?php endif; ?>
 </body>
 </html>

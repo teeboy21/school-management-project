@@ -9,181 +9,152 @@ if (!isset($_SESSION['user_id'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complete Registration</title>
+    <link rel="stylesheet" href="external.css?v=4">
     <link rel="stylesheet" href="assets/toast.css">
 </head>
-<style>
-    body {
-        font-family: Arial;
-        background: linear-gradient(to right, #3498db, #6dd5fa);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+<body class="public-page">
+    <div class="parent">
+        <div class="form-container">
+            <h2>Complete Your Profile</h2>
+            <p class="auth-subtitle">Fill in your details to complete your student registration.</p>
 
-    .form-container {
-        background: white;
-        padding: 30px;
-        border-radius: 15px;
-        width: 500px;
-        margin-top: 20px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    }
+            <form id="complete">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+                    <div>
+                        <label>Full Name</label>
+                        <input type="text" name="fullnames" required placeholder="e.g. John">
+                    </div>
+                    <div>
+                        <label>Surname</label>
+                        <input type="text" name="surname" required placeholder="e.g. Doe">
+                    </div>
+                    <div>
+                        <label>Race</label>
+                        <select name="race" required>
+                            <option value="">Select Race</option>
+                            <option value="white">White</option>
+                            <option value="black">Black</option>
+                            <option value="asian">Asian</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Gender</label>
+                        <select name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Date of Birth</label>
+                        <input type="date" name="dob" required>
+                    </div>
+                    <div>
+                        <label>Grade Applying For</label>
+                        <select name="grade_applying" required>
+                            <option value="">Select Grade</option>
+                            <?php
+                            $grades_query = $conn->query("SELECT id, name FROM grades ORDER BY name");
+                            if ($grades_query) {
+                                while ($g = $grades_query->fetch_assoc()) {
+                                    echo '<option value="' . (int)$g['id'] . '">' . htmlspecialchars($g['name']) . '</option>';
+                                }
+                            } else {
+                                echo '<option value="">No grades available</option>';
+                            }
+                            ?>
+                        </select>
+                    </div>
+                </div>
 
-    h2 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
+                <label>Phone Number</label>
+                <input type="text" name="phone" placeholder="+27 XX XXX XXXX">
 
-    input,
-    select,
-    textarea {
-        width: 100%;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
-    }
+                <label>Next of Kin Phone</label>
+                <input type="text" name="kinphone" placeholder="Next of kin phone number">
 
-    button {
-        width: 100%;
-        padding: 10px;
-        background: #2ecc71;
-        border: none;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-        border-radius: 5px;
-        margin: 10px 0;
-    }
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+                    <div>
+                        <label>Kin Relationship</label>
+                        <select name="kinrelationship">
+                            <option value="">Select Relationship</option>
+                            <option value="parent">Parent</option>
+                            <option value="guardian">Guardian</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>ID / Passport</label>
+                        <input type="text" name="identification" placeholder="ID or passport number">
+                    </div>
+                </div>
 
-    button:hover {
-        background: #27ae60;
-    }
+                <label>Address</label>
+                <textarea name="address" placeholder="Street, City, Province"></textarea>
 
-    .message {
-        min-height: 24px;
-        margin-top: 10px;
-        text-align: center;
-        font-weight: 600;
-    }
-</style>
-
-<body>
-
-    <div class="form-container">
-        <h2>Complete Your Profile</h2>
-
-        <form id="complete">
-            <input type="text" name="fullnames" placeholder="Full Name" required>
-            <input type="text" name="surname" placeholder="Surname" required>
-            <select name="race" required>
-                <option value="">Select Race</option>
-                <option value="white">White</option>
-                <option value="black">Black</option>
-                <option value="asian">Asian</option>
-                <option value="other">Other</option>
-            </select>
-            <input type="date" name="dob" required>
-
-            <select name="gender" required>
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-            </select>
-
-            <input type="text" name="phone" placeholder="Phone Number">
-            <input type="text" name="kinphone" placeholder="Next of Kin Phone Number">
-            <select name="kinrelationship">
-                <option value="">Select Relationship</option>
-                <option value="parent">Parent</option>
-                <option value="guardian">Guardian</option>
-                <option value="other">Other</option>
-            </select>
-            <input type="text" name="identification" placeholder="Identification Number/Passport">
-<select name="grade_applying" id="gradeSelect">
-    <option value="">Select Grade</option>
-    <?php
-    $grades_query = $conn->query("SELECT id, grade_name FROM grades ORDER BY grade_name");
-    if ($grades_query) {
-        while ($g = $grades_query->fetch_assoc()) {
-            echo '<option value="' . htmlspecialchars($g['grade_name']) . '">' . htmlspecialchars($g['grade_name']) . '</option>';
-        }
-    }
-    ?>
-</select>
-
-            <textarea name="address" placeholder="Address"></textarea>
-
-            <button type="submit" id="submit">Submit Registration</button>
-            <button type="button" onclick="window.location.href='login.html'">Exit Registration</button>
-        </form>
-        <p id="formMessage" class="message"></p>
+                <div class="auth-actions">
+                    <button type="submit" id="submit">Submit Registration</button>
+                </div>
+                <button type="button" class="secondary-link-btn" onclick="window.location.href='login.html'" style="margin-top:10px">Exit Registration</button>
+            </form>
+            <p id="formMessage" class="message"></p>
+        </div>
     </div>
 
-</body>
+    <script src="assets/toast.js"></script>
+    <script>
+    document.getElementById("complete").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const btn = document.getElementById("submit");
+        const msg = document.getElementById("formMessage");
+        btn.disabled = true;
+        btn.textContent = "Submitting...";
+        msg.textContent = "";
 
-<script src="assets/toast.js"></script>
-<script>
-const completeForm = document.getElementById("complete");
-const submitBtn = document.getElementById("submit");
-const formMessage = document.getElementById("formMessage");
+        const fd = new FormData(this);
+        const payload = {
+            fullnames: fd.get("fullnames"),
+            surname: fd.get("surname"),
+            race: fd.get("race"),
+            dob: fd.get("dob"),
+            gender: fd.get("gender"),
+            phone: fd.get("phone"),
+            kinphone: fd.get("kinphone"),
+            kinrelationship: fd.get("kinrelationship"),
+            identification: fd.get("identification"),
+            grade_applying: fd.get("grade_applying"),
+            address: fd.get("address")
+        };
 
-completeForm.addEventListener("submit", function (event) {
-    event.preventDefault();
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting...";
-    formMessage.textContent = "";
-
-    const formData = new FormData(completeForm);
-    const payload = {
-        fullnames: formData.get("fullnames"),
-        surname: formData.get("surname"),
-        race: formData.get("race"),
-        dob: formData.get("dob"),
-        gender: formData.get("gender"),
-        phone: formData.get("phone"),
-        kinphone: formData.get("kinphone"),
-        kinrelationship: formData.get("kinrelationship"),
-        identification: formData.get("identification"),
-        grade_applying: formData.get("grade_applying"),
-        address: formData.get("address")
-    };
-
-    fetch("API/studentcomplete.php", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(response => {
-        formMessage.textContent = response.message;
-        formMessage.style.color = response.status === "success" ? "green" : "red";
-        showToast(response.message, response.status === "success" ? "success" : "error");
-
-        if (response.status === "success") {
-            setTimeout(() => {
-                window.location.href = "login.html";
-            }, 1200);
-        }
-    })
-    .catch(error => {
-        formMessage.textContent = "Failed to submit registration. " + error;
-        formMessage.style.color = "red";
-        showToast("Failed to submit registration. " + error, "error");
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Registration";
+        fetch("API/studentcomplete.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(response => {
+            msg.textContent = response.message;
+            msg.style.color = response.status === "success" ? "green" : "red";
+            showToast(response.message, response.status === "success" ? "success" : "error");
+            if (response.status === "success") {
+                setTimeout(() => { window.location.href = "login.html"; }, 1200);
+            }
+        })
+        .catch(error => {
+            msg.textContent = "Failed to submit. " + error;
+            msg.style.color = "red";
+            showToast("Failed to submit registration. " + error, "error");
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "Submit Registration";
+        });
     });
-});
-</script>
-
+    </script>
+</body>
 </html>

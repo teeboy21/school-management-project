@@ -15,6 +15,7 @@ $dashboard_url = $dash_map[$_SESSION['role'] ?? ''] ?? 'admindashboard.php';
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Salaries - <?= htmlspecialchars(get_school_info($conn, 'school_name')) ?></title>
 <link rel="stylesheet" href="internal.css">
+<link rel="stylesheet" href="assets/toast.css">
 <style>
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
 .form-grid .full { grid-column: 1 / -1; }
@@ -100,6 +101,7 @@ $dashboard_url = $dash_map[$_SESSION['role'] ?? ''] ?? 'admindashboard.php';
 </section>
 </main>
 </div>
+<script src="assets/toast.js"></script>
 <script>
 function formatCurrency(a) { return 'R ' + parseFloat(a||0).toLocaleString('en-ZA',{minimumFractionDigits:2}); }
 function statusBadge(s) {
@@ -146,9 +148,9 @@ if (salaryForm) {
 salaryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const employeeId = document.getElementById('salaryEmployee').value;
-    if (!employeeId) { alert('Select employee'); return; }
+    if (!employeeId) { showToast('Select employee', 'error'); return; }
     const basicSalary = parseFloat(document.getElementById('basicSalary').value);
-    if (!basicSalary) { alert('Enter basic salary'); return; }
+    if (!basicSalary) { showToast('Enter basic salary', 'error'); return; }
     const payload = {
         id: document.getElementById('salaryId').value||null,
         employee_id: parseInt(employeeId),
@@ -165,10 +167,12 @@ salaryForm.addEventListener('submit', async (e) => {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        if (data.status === 'success') { alert('Salary saved!'); clearForm(); loadSalaries(); }
-        else { alert(data.message || 'Failed'); }
-    } catch(e) { alert('Error: ' + e.message); }
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch(e) { showToast('Server error: ' + text.substring(0,100), 'error'); return; }
+        if (data.status === 'success') { showToast('Salary saved!', 'success'); clearForm(); loadSalaries(); }
+        else { showToast(data.message || 'Failed', 'error'); }
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
 });
 }
 

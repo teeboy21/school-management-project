@@ -117,6 +117,19 @@ function email_employee_approved($conn, $email, $fullname) {
     return send_email($conn, $email, $subject, $body);
 }
 
+function email_account_blocked($conn, $email, $fullname, $reason) {
+    $subject = 'Account Blocked';
+    $body = email_shell($conn, '#dc2626', '🔒', 'Account Blocked', '
+        <p style="margin:0 0 16px">Dear <strong>' . htmlspecialchars($fullname) . '</strong>,</p>
+        <p style="margin:0 0 12px">Your account has been blocked.</p>
+        <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:14px 18px;border-radius:8px;margin:18px 0;font-size:14px;color:#991b1b">
+            <strong>Reason:</strong> ' . htmlspecialchars($reason) . '
+        </div>
+        <p style="margin:16px 0 0;color:#64748b;font-size:14px">If you believe this was a mistake, please contact the school administration or IT department.</p>
+    ');
+    return send_email($conn, $email, $subject, $body);
+}
+
 function email_account_unblocked($conn, $email, $fullname) {
     $subject = 'Account Unblocked';
     $body = email_shell($conn, '#f59e0b', '🔓', 'Account Unblocked', '
@@ -160,13 +173,25 @@ function email_fees_paid($conn, $email, $fullname, $amount, $academic_year) {
     return send_email($conn, $email, $subject, $body);
 }
 
-function email_subjects_approved($conn, $email, $fullname) {
+function email_subjects_approved($conn, $email, $fullname, $fee_total = null, $fee_due_date = null) {
     $subject = 'Subject Selections Approved';
+    $fee_html = '';
+    if ($fee_total !== null) {
+        $fee_html = '
+        <div style="background:#f5f3ff;border:1px solid #e0d4fc;border-radius:12px;padding:18px 20px;margin:18px 0">
+            <div style="font-size:13px;color:#6d28d9;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fee Summary</div>
+            <table style="width:100%;font-size:14px;border-collapse:collapse">
+                <tr><td style="padding:4px 0;color:#475569">Total Amount Due</td><td style="padding:4px 0;text-align:right;font-weight:700;font-size:18px;color:#6d28d9">$' . number_format($fee_total, 2) . '</td></tr>' .
+                ($fee_due_date ? '<tr><td style="padding:4px 0;color:#475569">Due Date</td><td style="padding:4px 0;text-align:right;font-weight:600">' . htmlspecialchars($fee_due_date) . '</td></tr>' : '') . '
+            </table>
+        </div>';
+    }
     $body = email_shell($conn, '#8b5cf6', '📚', 'Subjects Approved', '
         <p style="margin:0 0 16px">Dear <strong>' . htmlspecialchars($fullname) . '</strong>,</p>
         <p style="margin:0 0 12px">Your subject selections have been reviewed and approved. You can view your final subject list in the student portal.</p>
+        ' . $fee_html . '
         <div style="background:#f5f3ff;border-left:4px solid #8b5cf6;padding:14px 18px;border-radius:8px;margin:18px 0;font-size:14px;color:#6d28d9">
-            <strong>📌 Next step:</strong> Your fee structure has been updated based on your selected subjects. Please check the fees page for details.
+            <strong>📌 Next step:</strong> Please complete your fee payment before the due date to confirm your enrollment.
         </div>
         <p style="margin:16px 0 0;color:#64748b;font-size:14px">Wishing you a great academic year ahead!</p>
     ');

@@ -33,6 +33,7 @@ require_once 'system_check.php';
 <li><a href="pending_approvals.php">Approvals</a></li>
 <li><a href="view_ratings.php">Teacher Ratings</a></li>
 <li><a href="events.php">Events</a></li>
+<li><a href="edit_student_subjects.php">Edit Student Subjects</a></li>
 <li><a href="projects.php">Projects</a></li>
 <li><a href="school_settings.php">School Settings</a></li>
 <li><a href="employee_profile.php">My Profile</a></li>

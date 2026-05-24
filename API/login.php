@@ -55,7 +55,7 @@ try {
 
     // Get max login attempts from settings
     $max_attempts = 5;
-    $att_r = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'max_login_attempts'");
+    $att_r = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'max_failed_login_attempts'");
     if ($att_r && ($att_row = $att_r->fetch_assoc())) $max_attempts = (int)$att_row['setting_value'];
 
     // Check if account is locked
@@ -101,6 +101,11 @@ try {
             $q2 = $conn->query("UPDATE user SET locked = 1, locked_at = NOW(), locked_reason = 'Too many failed login attempts' WHERE id = {$user['id']}");
             if (!$q2) { $conn->query("UPDATE user SET locked = 1 WHERE id = {$user['id']}"); }
             log_audit($conn, $user['id'], 'login_blocked', 'auth', null, null, ['email' => $email, 'reason' => 'Account locked after ' . $attempts . ' failed attempts']);
+            $name_r = $conn->query("SELECT COALESCE(s.fullname, t.fullname, e.fullname, 'User') AS fullname FROM user u LEFT JOIN students s ON s.user_id = u.id LEFT JOIN teachers t ON t.user_id = u.id LEFT JOIN employees e ON e.user_id = u.id WHERE u.id = {$user['id']}");
+            $name_row = $name_r ? $name_r->fetch_assoc() : null;
+            $fullname = $name_row['fullname'] ?? 'User';
+            require_once __DIR__ . '/../email_helper.php';
+            email_account_blocked($conn, $email, $fullname, 'Too many failed login attempts');
             echo json_encode(["status" => "error", "message" => "Account has been locked due to too many failed login attempts. Contact administration."]);
         } else {
             echo json_encode(["status" => "error", "message" => "Incorrect password. " . ($max_attempts - $attempts) . " attempt(s) remaining."]);

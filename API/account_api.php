@@ -92,6 +92,8 @@ if ($action === 'block_account') {
         }
     }
     log_audit($conn, $user_id, 'account_blocked', 'auth', 'user', $target_id, ['reason' => $reason]);
+    $u = $conn->query("SELECT email, COALESCE(t.fullname, e.fullname, s.fullname, email) AS fullname FROM user u LEFT JOIN teachers t ON t.user_id = u.id LEFT JOIN employees e ON e.user_id = u.id LEFT JOIN students s ON s.user_id = u.id WHERE u.id = $target_id")->fetch_assoc();
+    if ($u) email_account_blocked($conn, $u['email'], $u['fullname'], $reason);
     echo json_encode(["status" => "success", "message" => "Account blocked"]);
     exit;
 }

@@ -12,6 +12,16 @@ $display_email = $_SESSION['email'] ?? '';
 $dash_map = ['admin'=>'admindashboard.php','student'=>'userdashboard.php','teacher'=>'teacherdashboard.php','hr_manager'=>'hr_dashboard.php','finance_manager'=>'finance_dashboard.php','principal'=>'principal_dashboard.php','it_technician'=>'it_dashboard.php'];
 $dashboard_url = $dash_map[$role] ?? 'login.html';
 
+require __DIR__ . '/config.php';
+
+$events_enabled = true;
+$stmt = $conn->prepare("SELECT setting_value FROM settings WHERE setting_key = 'events_enabled'");
+$stmt->execute();
+$row = $stmt->get_result()->fetch_assoc();
+if ($row && $row['setting_value'] === 'off') {
+    $events_enabled = false;
+}
+
 if ($role === 'admin') {
     $sidebar = [
         ['label' => 'Dashboard', 'href' => 'admindashboard.php'],
@@ -75,6 +85,7 @@ if ($role === 'admin') {
         </header>
 
         <section class="app-content">
+            <?php if ($events_enabled): ?>
             <div class="hero-card">
                 <h2><?= in_array($role, ['admin', 'principal']) ? 'Event Control' : 'Event Calendar' ?></h2>
                 <p>
@@ -147,11 +158,18 @@ if ($role === 'admin') {
                 </div>
                 <div id="eventsList" class="cards-grid"></div>
             </div>
+            <?php else: ?>
+            <div class="hero-card">
+                <h2>Events</h2>
+                <p>The events module is currently disabled by the administrator.</p>
+            </div>
+            <?php endif; ?>
         </section>
     </main>
 </div>
 
 <script src="assets/toast.js"></script>
+<?php if ($events_enabled): ?>
 <script>
 
 const role = <?= json_encode($role) ?>;
@@ -161,19 +179,16 @@ const totalEventsEl = document.getElementById("totalEvents");
 const upcomingMonthEl = document.getElementById("upcomingMonth");
 const audienceMatchEl = document.getElementById("audienceMatch");
 
-/* ================= LOAD EVENTS ================= */
 async function loadEvents() {
     const res = await fetch("API/events_api.php?action=get");
     return await res.json();
 }
 
-/* ================= FILTER ================= */
 function isVisibleToRole(event) {
     return event.audience === "all" ||
         event.audience === role;
 }
 
-/* ================= STATS ================= */
 function renderStats(events) {
     const visibleEvents = role === "admin" || role === "principal" ? events : events.filter(isVisibleToRole);
     totalEventsEl.textContent = events.length;
@@ -191,7 +206,6 @@ function renderStats(events) {
     audienceMatchEl.textContent = visibleEvents.length;
 }
 
-/* ================= RENDER ================= */
 async function renderEvents() {
     const events = await loadEvents();
 
@@ -225,7 +239,6 @@ async function renderEvents() {
     `).join("");
 }
 
-/* ================= DELETE ================= */
 async function deleteEvent(id) {
     if (!confirm("Delete this event?")) return;
     const res = await fetch(`API/events_api.php?action=delete&id=${id}`);
@@ -238,7 +251,6 @@ async function deleteEvent(id) {
     }
 }
 
-/* ================= SUBMIT ================= */
 const form = document.getElementById("eventForm");
 
 if (form) {
@@ -278,12 +290,11 @@ if (form) {
     });
 }
 
-/* ================= SEARCH ================= */
 searchInput.addEventListener("input", renderEvents);
 
-/* ================= INIT ================= */
 renderEvents();
 
 </script>
+<?php endif; ?>
 </body>
 </html>

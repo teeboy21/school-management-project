@@ -14,6 +14,8 @@ if (empty($_SESSION['user_id']) && !in_array($action, $public_actions)) {
 $userRole = $_SESSION['role'] ?? '';
 $isAdmin = !empty($userRole) && in_array($userRole, ['admin', 'finance_manager', 'principal']);
 
+function esc($s) { global $conn; return "'" . $conn->real_escape_string($s) . "'"; }
+
 function get_account_balance() {
     global $conn;
     $current = $conn->query("SELECT balance FROM school_account LIMIT 1")->fetch_assoc();
@@ -31,7 +33,9 @@ function update_account_balance($amount, $type = 'add') {
         $new_balance = $balance - $amount;
     }
     
-    $conn->query("UPDATE school_account SET balance = $new_balance WHERE id = 1");
+    $stmt = $conn->prepare("UPDATE school_account SET balance = ? WHERE id = 1");
+    $stmt->bind_param("d", $new_balance);
+    $stmt->execute();
     return $new_balance;
 }
 
@@ -43,15 +47,15 @@ if ($action === 'summary') {
         exit;
     }
     
-    $year = $_GET['year'] ?? date('Y');
+    $year = esc($_GET['year'] ?? date('Y'));
     
-    $total_revenue = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE YEAR(payment_date) = '$year'")->fetch_assoc()['total'];
-    $total_fees = $conn->query("SELECT COALESCE(SUM(total_amount), 0) as total FROM student_fees WHERE academic_year = '$year'")->fetch_assoc()['total'];
-    $total_donations = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM donations WHERE YEAR(donation_date) = '$year'")->fetch_assoc()['total'];
-    $total_expenses = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE YEAR(expense_date) = '$year'")->fetch_assoc()['total'];
-    $total_salaries = $conn->query("SELECT COALESCE(SUM(net_salary), 0) as total FROM salary_payments WHERE month LIKE '$year%' AND status = 'paid'")->fetch_assoc()['total'];
-    $total_project_spend = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM project_expenditure WHERE YEAR(expenditure_date) = '$year'")->fetch_assoc()['total'];
-    $total_contract_payments = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM contract_payments WHERE YEAR(payment_date) = '$year'")->fetch_assoc()['total'];
+    $total_revenue = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE YEAR(payment_date) = $year")->fetch_assoc()['total'];
+    $total_fees = $conn->query("SELECT COALESCE(SUM(total_amount), 0) as total FROM student_fees WHERE academic_year = $year")->fetch_assoc()['total'];
+    $total_donations = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM donations WHERE YEAR(donation_date) = $year")->fetch_assoc()['total'];
+    $total_expenses = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE YEAR(expense_date) = $year")->fetch_assoc()['total'];
+    $total_salaries = $conn->query("SELECT COALESCE(SUM(net_salary), 0) as total FROM salary_payments WHERE month LIKE CONCAT($year, '%') AND status = 'paid'")->fetch_assoc()['total'];
+    $total_project_spend = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM project_expenditure WHERE YEAR(expenditure_date) = $year")->fetch_assoc()['total'];
+    $total_contract_payments = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM contract_payments WHERE YEAR(payment_date) = $year")->fetch_assoc()['total'];
     
     $gross_income = $total_revenue + $total_donations;
     $total_expenditure = $total_expenses + $total_salaries + $total_project_spend + $total_contract_payments;
@@ -82,16 +86,18 @@ if ($action === 'monthly_breakdown') {
         exit;
     }
     
-    $year = $_GET['year'] ?? date('Y');
+    $raw_year = $_GET['year'] ?? date('Y');
+    $year_esc = esc($raw_year);
     
     $monthly = [];
     for ($m = 1; $m <= 12; $m++) {
-        $month = sprintf('%s-%02d', $year, $m);
+        $month = sprintf('%s-%02d', $raw_year, $m);
         $month_name = date('M', strtotime($month . '-01'));
+        $month_esc = esc($month);
         
-        $revenue = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE DATE_FORMAT(payment_date, '%Y-%m') = '$month'")->fetch_assoc()['total'];
-        $expenses = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE DATE_FORMAT(expense_date, '%Y-%m') = '$month'")->fetch_assoc()['total'];
-        $salaries = $conn->query("SELECT COALESCE(SUM(net_salary), 0) as total FROM salary_payments WHERE month = '$month' AND status = 'paid'")->fetch_assoc()['total'];
+        $revenue = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE DATE_FORMAT(payment_date, '%Y-%m') = $month_esc")->fetch_assoc()['total'];
+        $expenses = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE DATE_FORMAT(expense_date, '%Y-%m') = $month_esc")->fetch_assoc()['total'];
+        $salaries = $conn->query("SELECT COALESCE(SUM(net_salary), 0) as total FROM salary_payments WHERE month = $month_esc AND status = 'paid'")->fetch_assoc()['total'];
         
         $monthly[] = [
             'month' => $month_name,
@@ -137,10 +143,10 @@ if ($action === 'expense_breakdown') {
         exit;
     }
     
-    $year = $_GET['year'] ?? date('Y');
+    $year = esc($_GET['year'] ?? date('Y'));
     
     $categories = $conn->query("SELECT category, COALESCE(SUM(amount), 0) as total 
-                              FROM expenses WHERE YEAR(expense_date) = '$year'
+                              FROM expenses WHERE YEAR(expense_date) = $year
                               GROUP BY category ORDER BY total DESC");
     
     $breakdown = [];
@@ -191,7 +197,7 @@ if ($action === 'get_account') {
 
 /* ================= DEVELOPMENT PROJECTS ================= */
 if ($action === 'get_projects') {
-    $status = $_GET['status'] ?? '';
+    $status = $conn->real_escape_string($_GET['status'] ?? '');
     $sql = "SELECT * FROM development_projects WHERE 1=1";
     if ($status) $sql .= " AND status = '$status'";
     $sql .= " ORDER BY created_at DESC";
@@ -225,7 +231,8 @@ if ($action === 'save_project') {
     
     if ($id) {
         if (!empty($status) && empty($project_name)) {
-            $conn->query("UPDATE development_projects SET status='$status' WHERE id=$id");
+            $status_esc = $conn->real_escape_string($status);
+            $conn->query("UPDATE development_projects SET status='$status_esc' WHERE id=$id");
             echo json_encode(["status" => "success", "message" => "Status updated"]);
             exit;
         }
@@ -259,7 +266,7 @@ if ($action === 'delete_project') {
         http_response_code(403);
         exit;
     }
-    $id = $_GET['id'];
+    $id = intval($_GET['id']);
     $conn->query("DELETE FROM development_projects WHERE id = $id");
     echo json_encode(["status" => "deleted"]);
     exit;
@@ -286,7 +293,7 @@ if ($action === 'save_expenditure' || $action === 'add_project_expense') {
 }
 
 if ($action === 'get_project_expenses') {
-    $project_id = $_GET['project_id'] ?? 0;
+    $project_id = intval($_GET['project_id'] ?? 0);
     $result = $conn->query("SELECT * FROM project_expenditure WHERE project_id = $project_id ORDER BY expenditure_date DESC");
     $expenses = [];
     while ($row = $result->fetch_assoc()) {
@@ -298,7 +305,7 @@ if ($action === 'get_project_expenses') {
 
 /* ================= PROJECT MILESTONES ================= */
 if ($action === 'get_milestones') {
-    $project_id = $_GET['project_id'] ?? 0;
+    $project_id = intval($_GET['project_id'] ?? 0);
     $result = $conn->query("SELECT * FROM project_milestones WHERE project_id = $project_id ORDER BY due_date");
     $milestones = [];
     while ($row = $result->fetch_assoc()) {

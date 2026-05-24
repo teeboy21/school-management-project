@@ -45,6 +45,7 @@ function get_user_role($conn, $user_id) {
 
 // Get the right workflow for a module and amount
 function find_workflow($conn, $module, $amount) {
+    $module = $conn->real_escape_string($module);
     $wf = $conn->query("SELECT id FROM approval_workflows WHERE module = '$module' AND is_active = 1 LIMIT 1");
     if ($wf && ($w = $wf->fetch_assoc())) {
         return $w['id'];
@@ -100,7 +101,7 @@ function update_reference_status($conn, $ref_type, $ref_id, $approval_status) {
 // ===== 1. SUBMIT FOR APPROVAL =====
 if ($action === 'submit_for_approval') {
     $data = json_decode(file_get_contents("php://input"), true);
-    $ref_type = $data['reference_type']; // expense, budget, contract, salary_change, payroll
+    $ref_type = $conn->real_escape_string($data['reference_type']); // expense, budget, contract, salary_change, payroll
     $ref_id = (int) $data['reference_id'];
     $notes = $conn->real_escape_string($data['notes'] ?? '');
     $amount = (float) ($data['amount'] ?? 0);
@@ -151,7 +152,7 @@ if ($action === 'submit_for_approval') {
 if ($action === 'get_pending_approvals') {
     $role = get_user_role($conn, $user_id);
     $limit = (int) ($_GET['limit'] ?? 50);
-    $module = $_GET['module'] ?? '';
+    $module = $conn->real_escape_string($_GET['module'] ?? '');
 
     $module_filter = $module ? "AND ar.module = '$module'" : '';
 
@@ -218,7 +219,7 @@ if ($action === 'get_pending_approvals') {
 if ($action === 'take_action') {
     $data = json_decode(file_get_contents("php://input"), true);
     $request_id = (int) ($data['request_id'] ?? 0);
-    $action_taken = $data['action']; // approved, rejected, returned
+    $action_taken = $conn->real_escape_string($data['action']); // approved, rejected, returned
     $comment = $conn->real_escape_string($data['comment'] ?? '');
 
     // Get the request
@@ -488,8 +489,8 @@ if ($action === 'delete_workflow_step') {
 
 // ===== GET ALL APPROVALS (for admin overview) =====
 if ($action === 'get_all_approvals') {
-    $status_filter = $_GET['status'] ?? '';
-    $module_filter = $_GET['module'] ?? '';
+    $status_filter = $conn->real_escape_string($_GET['status'] ?? '');
+    $module_filter = $conn->real_escape_string($_GET['module'] ?? '');
     $limit = (int)($_GET['limit'] ?? 100);
 
     $sql = "SELECT ar.*, COALESCE(t.fullname, e.fullname, s.fullname) as requester_name
@@ -516,7 +517,7 @@ if ($action === 'get_all_approvals') {
 
 // ===== GET MODULE STATS =====
 if ($action === 'get_module_stats') {
-    $module = $_GET['module'] ?? '';
+    $module = $conn->real_escape_string($_GET['module'] ?? '');
     $module_where = $module ? "WHERE module = '$module'" : '';
     $result = $conn->query("SELECT module, status, COUNT(*) as count FROM approval_requests $module_where GROUP BY module, status ORDER BY module, status");
     $stats = [];

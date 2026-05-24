@@ -32,20 +32,28 @@ function createStudentFees($student_id) {
     ")->fetch_assoc();
     if (!$student) return;
 
-    $year = date("Y");
     $grade_name = $student["grade_name"];
     if (!$grade_name) return;
 
-    $existing = $conn->query("SELECT id FROM student_fees WHERE student_id = $student_id AND academic_year = '$year'")->fetch_assoc();
-    if ($existing) return;
-
-    $fs = $conn->query("SELECT * FROM fee_structures WHERE grade_name = '$grade_name' AND academic_year = '$year'")->fetch_assoc();
+    // Try both academic year formats
+    $year_range = date('Y') . '-' . (date('Y') + 1);
+    $year_single = date('Y');
+    $fs = $conn->query("SELECT * FROM fee_structures WHERE grade_name = '$grade_name' AND (academic_year = '$year_range' OR academic_year = '$year_single') LIMIT 1")->fetch_assoc();
     if (!$fs) return;
 
-    $total = ($fs["tuition_fee"] ?? 0) + ($fs["registration_fee"] ?? 0) + ($fs["exam_fee"] ?? 0) + ($fs["library_fee"] ?? 0) + ($fs["sports_fee"] ?? 0) + ($fs["transport_fee"] ?? 0) + ($fs["other_fee"] ?? 0);
+    $academic_year = $fs['academic_year'];
+    $existing = $conn->query("SELECT id FROM student_fees WHERE student_id = {$student['id']} AND academic_year = '$academic_year'")->fetch_assoc();
+    if ($existing) return;
 
-    $conn->query("INSERT INTO student_fees (student_id, academic_year, fee_structure_id, total_amount, paid_amount, balance, status, due_date)
-        VALUES ($student_id, '$year', " . ($fs["id"] ?? 0) . ", $total, 0, $total, 'pending', '" . ($fs["due_date"] ?? "") . "')");
+    $total = (float)($fs["tuition_fee"] ?? 0) + (float)($fs["registration_fee"] ?? 0) + (float)($fs["exam_fee"] ?? 0) + (float)($fs["library_fee"] ?? 0) + (float)($fs["sports_fee"] ?? 0) + (float)($fs["transport_fee"] ?? 0) + (float)($fs["other_fee"] ?? 0);
+
+    $due = $fs["due_date"] ? "'" . $conn->real_escape_string($fs["due_date"]) . "'" : 'NULL';
+    $result = $conn->query("INSERT INTO student_fees (student_id, academic_year, fee_structure_id, total_amount, paid_amount, balance, status, due_date)
+        VALUES ({$student['id']}, '$academic_year', {$fs['id']}, $total, 0, $total, 'pending', $due)");
+
+    if ($conn->error) {
+        error_log("createStudentFees failed: " . $conn->error);
+    }
 }
 
 if ($action === "approve") {
@@ -55,8 +63,11 @@ if ($action === "approve") {
     
     createStudentFees($student_id);
 
-    $u = $conn->query("SELECT u.email, COALESCE(s.fullname, u.email) AS fullname FROM user u LEFT JOIN students s ON s.user_id = u.id WHERE s.id = $student_id")->fetch_assoc();
-    if ($u) email_subjects_approved($conn, $u['email'], $u['fullname']);
+    $u = $conn->query("SELECT u.email, COALESCE(s.fullname, u.email) AS fullname FROM user u LEFT JOIN students s ON s.user_id = u.id WHERE u.id = $student_id")->fetch_assoc();
+    if ($u) {
+        $fee = $conn->query("SELECT sf.total_amount, sf.due_date FROM student_fees sf JOIN students s ON sf.student_id = s.id WHERE s.user_id = $student_id AND sf.status = 'pending' ORDER BY sf.id DESC LIMIT 1")->fetch_assoc();
+        email_subjects_approved($conn, $u['email'], $u['fullname'], $fee ? (float)$fee['total_amount'] : null, $fee ? $fee['due_date'] : null);
+    }
 
     echo json_encode(["status" => "success", "message" => "Subject request approved and fees applied."]);
     exit;

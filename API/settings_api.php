@@ -50,7 +50,10 @@ try {
         ('registration_start_date', '" . date('Y-m-d') . "', 'registration', 'date', 'Registration start date', ''),
         ('registration_end_date', '" . date('Y-12-31') . "', 'registration', 'date', 'Registration end date', ''),
         ('teacher_ratings_enabled', 'off', 'modules', 'select', 'Enable teacher ratings by students', '{\"on\":\"On\",\"off\":\"Off\"}'),
-        ('max_login_attempts', '5', 'security', 'number', 'Max failed login attempts before account lock', ''),
+        ('principal_can_edit_subjects', 'off', 'modules', 'select', 'Allow principal to edit student subject selections', '{\"on\":\"On\",\"off\":\"Off\"}'),
+        ('events_enabled', 'on', 'modules', 'select', 'Enable events module', '{\"on\":\"On\",\"off\":\"Off\"}'),
+        ('assignments_enabled', 'on', 'modules', 'select', 'Enable assignments module for teachers and students', '{\"on\":\"On\",\"off\":\"Off\"}'),
+        ('max_failed_login_attempts', '5', 'security', 'number', 'Max failed login attempts before account lock', ''),
         ('block_reasons', 'Violation of school policy\nUnauthorized access attempt\nAccount compromise\nSuspicious activity\nHarassment or abuse\nOther', 'security', 'textarea', 'Block reasons (one per line) for the account management dropdown', '')
     ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), category=VALUES(category), setting_type=VALUES(setting_type), description=VALUES(description), options=VALUES(options)");
 } catch (Exception $e) { log_error($conn, $e); }

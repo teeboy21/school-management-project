@@ -16,12 +16,13 @@ SELECT
     u.email,
     s.id AS student_id,
     s.fullname,
-    s.grade,
+    COALESCE(g.name, s.grade) AS grade,
     p.phone AS parent_phone,
     p.relationship
 FROM user u
 JOIN students s ON u.id = s.user_id
 LEFT JOIN parents p ON s.id = p.student_id
+LEFT JOIN grades g ON s.grade = CAST(g.id AS CHAR)
 WHERE u.status = 'profile_completed'
 ORDER BY s.fullname
 ";

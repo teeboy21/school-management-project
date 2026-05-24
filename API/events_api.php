@@ -8,6 +8,12 @@ $action = $_GET['action'] ?? '';
 
 $isAdmin = in_array($_SESSION['role'] ?? '', ['admin', 'principal']);
 
+$events_enabled = true;
+$en_r = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'events_enabled'");
+if ($en_r && ($en_row = $en_r->fetch_assoc()) && $en_row['setting_value'] === 'off') {
+    $events_enabled = false;
+}
+
 /* ================= GET EVENTS ================= */
 if ($action === 'get') {
 
@@ -35,6 +41,12 @@ if ($action === 'get') {
 
 /* ================= SAVE ================= */
 if ($action === 'save') {
+
+    if (!$events_enabled) {
+        http_response_code(403);
+        echo json_encode(["status" => "error", "message" => "Events module is disabled"]);
+        exit;
+    }
 
     if (!$isAdmin) {
         http_response_code(403);
@@ -78,6 +90,12 @@ if ($action === 'save') {
 
 /* ================= DELETE ================= */
 if ($action === 'delete') {
+
+    if (!$events_enabled) {
+        http_response_code(403);
+        echo json_encode(["status" => "error", "message" => "Events module is disabled"]);
+        exit;
+    }
 
     if (!$isAdmin) {
         http_response_code(403);

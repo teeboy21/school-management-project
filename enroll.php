@@ -74,6 +74,34 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt4->execute();
 
                 $conn->commit();
+
+                // Auto-assign student number and class
+                $sid = (int)$stmt2->insert_id;
+                if ($sid) {
+                    $updates = [];
+                    do {
+                        $student_number = 'STU' . mt_rand(100000000000, 999999999999);
+                        $chk = $conn->query("SELECT id FROM students WHERE student_number = '$student_number'");
+                    } while ($chk && $chk->num_rows > 0);
+                    $updates[] = "student_number = '" . $conn->real_escape_string($student_number) . "'";
+
+                    $grade_id = null;
+                    if (is_numeric($grade_applying)) {
+                        $grade_id = intval($grade_applying);
+                    } else {
+                        $g = $conn->query("SELECT id FROM grades WHERE name = '" . $conn->real_escape_string($grade_applying) . "'")->fetch_assoc();
+                        if ($g) $grade_id = (int)$g['id'];
+                    }
+                    if ($grade_id) {
+                        $c = $conn->query("SELECT id FROM classes WHERE grade_id = $grade_id LIMIT 1")->fetch_assoc();
+                        if ($c) $updates[] = "class_id = {$c['id']}";
+                    }
+
+                    if (!empty($updates)) {
+                        $conn->query("UPDATE students SET " . implode(', ', $updates) . " WHERE id = $sid");
+                    }
+                }
+
                 $message = "Student registered successfully.";
             } catch (Throwable $e) {
                 $conn->rollback();
@@ -182,16 +210,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <label>Grade Applying</label>
                         <select name="grade_applying" required>
                             <option value="">Select Grade</option>
-                            <option value="17">Grade 8 SEPEDI</option>
-                            <option value="19">Grade 9 SEPEDI</option>
-                            <option value="21">Grade 10 SEPEDI</option>
-                            <option value="23">Grade 11 SEPEDI</option>
-                            <option value="25">Grade 12 SEPEDI</option>
-                            <option value="18">Grade 8 TSONGA</option>
-                            <option value="20">Grade 9 TSONGA</option>
-                            <option value="22">Grade 10 TSONGA</option>
-                            <option value="24">Grade 11 TSONGA</option>
-                            <option value="26">Grade 12 TSONGA</option>
+                            <?php
+                            $grades_query = $conn->query("SELECT id, name FROM grades ORDER BY name");
+                            if ($grades_query) {
+                                while ($g = $grades_query->fetch_assoc()) {
+                                    echo '<option value="' . (int)$g['id'] . '">' . htmlspecialchars($g['name']) . '</option>';
+                                }
+                            }
+                            ?>
                         </select>
                     </div>
                     <div>
