@@ -11,8 +11,10 @@ function email_notifications_enabled($conn) {
 function send_email($conn, $to, $subject, $html) {
     if (!email_notifications_enabled($conn)) return false;
 
-    $api_key = get_school_info($conn, 'resend_api_key', '');
-    $from_email = get_school_info($conn, 'resend_from_email', 'noreply@yourdomain.com');
+   // $api_key = get_school_info($conn, 'resend_api_key', '');
+    $api_key ='re_1234567890abcdef'; // Placeholder API key for testing. Replace with actual key from school_info.
+   // $from_email = get_school_info($conn, 'resend_from_email', 'noreply@yourdomain.com');
+    $from_email = 'onboarding@resend.dev';
 
     if (empty($api_key)) return false;
 

@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'principal' && ($_SESSION['role'] ?? '') !== 'admin') {
     header("Location: login.php");
     exit();
 }
@@ -20,9 +20,9 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
         <header class="app-header">
             <div class="app-header-meta">
                 <div class="app-header-title">Manage Classes</div>
-                <div class="app-header-subtitle">Create and update classes with API-backed saves.</div>
-            </div>
-            <div class="app-user">
+                <div class="app-header-subtitle">Create and update classes.</div>
+
+        <div class="app-user">
                 <div class="app-user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Administrator') ?></div>
                 <div class="app-user-email"><?= htmlspecialchars($_SESSION['email'] ?? '') ?></div>
             </div>

@@ -64,8 +64,7 @@ const fields = [
     {key:'operating_hours',label:'Operating Hours',type:'text',full:true},
     {key:'terms_and_conditions',label:'Terms & Conditions',type:'textarea',full:true},
     {key:'email_notifications_enabled',label:'Email Notifications',type:'select',options:{on:'On',off:'Off'}},
-    {key:'resend_api_key',label:'Resend API Key',type:'text',full:true},
-    {key:'resend_from_email',label:'Sender Email Address',type:'email'}
+    
 ];
 
 let data = {};
@@ -106,6 +105,7 @@ async function saveSettings(){
 }
 
 loadSettings();
+
 </script>
 </body>
 </html>

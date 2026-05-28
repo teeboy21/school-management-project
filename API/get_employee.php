@@ -3,7 +3,7 @@ header("Content-Type: application/json");
 session_start();
 require __DIR__ . '/../config.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'hr_manager'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'hr_manager', 'principal'])) {
     http_response_code(403);
     echo json_encode(["status" => "error", "message" => "Access denied"]);
     exit;

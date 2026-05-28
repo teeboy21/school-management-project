@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'principal') {
     header("Location: login.php");
     exit();
 }
@@ -20,7 +20,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
         <header class="app-header">
             <div class="app-header-meta">
                 <div class="app-header-title">Manage Grades</div>
-                <div class="app-header-subtitle">Create and update grades without full page reloads.</div>
+                <div class="app-header-subtitle">Create and update grades .</div>
             </div>
             <div class="app-user">
                 <div class="app-user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Administrator') ?></div>
