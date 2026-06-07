@@ -47,10 +47,17 @@ if ($action === 'get_subjects') {
         exit;
     }
 
+    $grade_result = $conn->query("SELECT grade FROM students WHERE user_id = $student_id");
+    $grade_id = 0;
+    if ($gr = $grade_result->fetch_assoc()) {
+        $grade_id = (int)$gr['grade'];
+    }
+
     $subjects = $conn->query("
         SELECT s.id, s.subject_name, ss.status, ss.id AS link_id
         FROM subjects s
         LEFT JOIN student_subject ss ON ss.subject_id = s.id AND ss.student_id = $student_id
+        WHERE s.grade_id = $grade_id
         ORDER BY s.subject_name
     ");
     $list = [];

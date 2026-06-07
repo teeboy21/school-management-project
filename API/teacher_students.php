@@ -17,10 +17,12 @@ $stmt = $conn->prepare("
         s.student_number,
         s.fullname,
         s.phone AS numbers,
+        u.email,
         g.name AS gradename
     FROM teacher_subject ts
     JOIN student_subject ss ON ss.subject_id = ts.subject_id
     JOIN students s ON ss.student_id = s.user_id
+    JOIN user u ON s.user_id = u.id
     LEFT JOIN classes c ON s.class_id = c.id
     LEFT JOIN grades g ON c.grade_id = g.id
     WHERE ts.teacher_id = ?

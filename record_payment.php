@@ -63,6 +63,7 @@ $dashboard_url = $dash_map[$_SESSION['role'] ?? ''] ?? 'admindashboard.php';
                         <input type="text" id="paymentStudentName" readonly placeholder="Click a student above">
                         <input type="hidden" id="paymentStudentId">
                     </div>
+                    <div><label>Outstanding Balance</label><input type="text" id="studentBalance" readonly value="—"></div>
                     <div><label>Amount</label><input type="number" id="paymentAmount" step="0.01" required></div>
                     <div>
                         <label>Payment Method</label>
@@ -129,17 +130,36 @@ function searchStudents() {
 function selectStudent(id, name) {
     document.getElementById('paymentStudentId').value = id;
     document.getElementById('paymentStudentName').value = name;
+    document.getElementById('paymentAmount').value = '';
     document.getElementById('studentSearch').value = '';
     document.getElementById('studentResults').innerHTML = '';
+    document.getElementById('studentBalance').value = 'Loading...';
+    fetch('API/finance_api.php?action=get_student_balance&student_id=' + id)
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'paid' || d.status === 'none') {
+                document.getElementById('studentBalance').value = 'R 0.00 (Cleared)';
+            } else {
+                document.getElementById('studentBalance').value = formatCurrency(d.balance);
+                document.getElementById('studentBalance').dataset.balance = d.balance;
+            }
+        });
 }
 
 document.getElementById('paymentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const studentId = document.getElementById('paymentStudentId').value;
     if(!studentId) { alert('Please select a student'); return; }
+    const amount = parseFloat(document.getElementById('paymentAmount').value);
+    const balanceEl = document.getElementById('studentBalance');
+    const maxBalance = parseFloat(balanceEl.dataset.balance || 0);
+    if (maxBalance > 0 && amount > maxBalance) {
+        alert('Amount (R ' + amount.toFixed(2) + ') exceeds outstanding balance (R ' + maxBalance.toFixed(2) + ')');
+        return;
+    }
     const payload = {
         student_id: parseInt(studentId),
-        amount: parseFloat(document.getElementById('paymentAmount').value),
+        amount: amount,
         payment_method: document.getElementById('paymentMethod').value,
         reference_number: document.getElementById('paymentRef').value,
         payment_date: document.getElementById('paymentDate').value,
@@ -153,6 +173,8 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
     alert(data.status === 'success' ? 'Payment recorded!' : data.message || 'Error');
     document.getElementById('paymentForm').reset();
     document.getElementById('paymentDate').value = '<?= date('Y-m-d') ?>';
+    document.getElementById('studentBalance').value = '—';
+    delete document.getElementById('studentBalance').dataset.balance;
     loadPayments();
 });
 

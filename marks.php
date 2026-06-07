@@ -21,11 +21,12 @@ $row = $result->fetch_assoc();
 $marks_entry_enabled = ($row && $row['setting_value'] === 'open');
 
 $subjects = $conn->prepare("
-    SELECT DISTINCT s.id, s.subject_name
+    SELECT DISTINCT s.id, s.subject_name, g.name AS grade_name
     FROM teacher_subject ts
     JOIN subjects s ON ts.subject_id = s.id
+    JOIN grades g ON s.grade_id = g.id
     WHERE ts.teacher_id = ?
-    ORDER BY s.subject_name
+    ORDER BY g.name, s.subject_name
 ");
 $subjects->bind_param("i", $teacher_id);
 $subjects->execute();
@@ -134,7 +135,7 @@ if ($selected_subject_id > 0) {
                             <option value="">Select Subject</option>
                             <?php while ($s = $subjects_result->fetch_assoc()): ?>
                                 <option value="<?= (int) $s['id'] ?>" <?= $selected_subject_id === (int) $s['id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($s['subject_name']) ?>
+                                    <?= htmlspecialchars($s['subject_name'] . ' — ' . $s['grade_name']) ?>
                                 </option>
                             <?php endwhile; ?>
                         </select>

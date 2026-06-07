@@ -223,7 +223,7 @@ $operating_hours = get_school_info($conn, 'operating_hours', '');
 
     <footer class="landing-footer">
         <p>&copy; <?= date('Y') ?> <?= htmlspecialchars($school_name) ?>. All rights reserved.</p>
-        <p><a href="login.html">Staff Login</a> &middot; <a href="signup.html">Student Registration</a></p>
+        <p><a href="login.html">Staff Login</a> &middot; <a href="signup.html">Student Registration</a> &middot; <a href="terms.php">Terms and Conditions</a></p>
     </footer>
 </body>
 </html>

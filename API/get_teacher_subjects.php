@@ -10,11 +10,12 @@ if (!$teacher_id || ($_SESSION['role'] ?? '') !== 'teacher') {
 }
 
 $stmt = $conn->prepare("
-    SELECT DISTINCT s.id, s.subject_name
+    SELECT DISTINCT s.id, s.subject_name, g.name AS grade_name
     FROM teacher_subject ts
     JOIN subjects s ON ts.subject_id = s.id
+    LEFT JOIN grades g ON s.grade_id = g.id
     WHERE ts.teacher_id = ?
-    ORDER BY s.subject_name
+    ORDER BY g.name, s.subject_name
 ");
 $stmt->bind_param("i", $teacher_id);
 $stmt->execute();

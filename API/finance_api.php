@@ -118,6 +118,20 @@ if ($action === 'delete_fee_structure') {
     exit;
 }
 
+if ($action === 'get_student_balance') {
+    $student_id = intval($_GET['student_id']);
+    $stmt = $conn->prepare("SELECT id, total_amount, paid_amount, balance, status, academic_year FROM student_fees WHERE student_id = ? AND status != 'paid' ORDER BY academic_year DESC LIMIT 1");
+    $stmt->bind_param("i", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        echo json_encode($row);
+    } else {
+        echo json_encode(["balance" => 0, "total_amount" => 0, "paid_amount" => 0, "status" => "none"]);
+    }
+    exit;
+}
+
 if ($action === 'get_student_fees') {
     $year = esc($_GET['year'] ?? date('Y'));
     $result = $conn->query("SELECT sf.*, s.student_number, s.fullname FROM student_fees sf JOIN students s ON sf.student_id = s.id WHERE sf.academic_year = $year ORDER BY s.fullname");
@@ -133,7 +147,7 @@ if ($action === 'create_student_fees') {
     $structures = $conn->query("SELECT * FROM fee_structures WHERE academic_year = $year");
     $created = 0;
     while ($fs = $structures->fetch_assoc()) {
-        $students = $conn->query("SELECT id FROM students WHERE grade = " . esc($fs['grade_name']));
+        $students = $conn->query("SELECT s.id FROM students s JOIN grades g ON s.grade = g.id WHERE g.name = " . esc($fs['grade_name']));
         while ($student = $students->fetch_assoc()) {
             $total = floatval($fs['tuition_fee']) + floatval($fs['registration_fee']) + floatval($fs['exam_fee']) + floatval($fs['library_fee']) + floatval($fs['sports_fee']) + floatval($fs['transport_fee']) + floatval($fs['other_fee']);
             $due_date = $fs['due_date'] ? esc($fs['due_date']) : esc(date('Y-12-31'));
@@ -170,16 +184,23 @@ if ($action === 'record_payment') {
     $notes = esc($data['notes'] ?? '');
     $recorded_by = intval($_SESSION['user_id']);
 
-    $stmt = $conn->prepare("INSERT INTO payments (student_id, amount, payment_method, reference_number, payment_date, recorded_by, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("idsssis", $student_id, $amount, $method, $reference, $payment_date, $recorded_by, $notes);
-    $stmt->execute();
-    $payment_id = $conn->insert_id;
-
     $stmt = $conn->prepare("SELECT id, total_amount, paid_amount, balance FROM student_fees WHERE student_id = ? AND status != 'paid' ORDER BY academic_year DESC LIMIT 1");
     $stmt->bind_param("i", $student_id);
     $stmt->execute();
     $student_fee = $stmt->get_result();
     if ($sf = $student_fee->fetch_assoc()) {
+        if ($amount > floatval($sf['balance'])) {
+            echo json_encode(["status" => "error", "message" => "Payment amount (R " . number_format($amount, 2) . ") exceeds outstanding balance (R " . number_format($sf['balance'], 2) . ")"]);
+            exit;
+        }
+    }
+
+    $stmt = $conn->prepare("INSERT INTO payments (student_id, amount, payment_method, reference_number, payment_date, recorded_by, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("idsssis", $student_id, $amount, $method, $reference, $payment_date, $recorded_by, $notes);
+    $stmt->execute();
+    $payment_id = $conn->insert_id;
+
+    if ($sf) {
         $new_paid = floatval($sf['paid_amount']) + $amount;
         $new_balance = floatval($sf['total_amount']) - $new_paid;
         if ($new_balance < 0) $new_balance = 0;
@@ -413,7 +434,7 @@ if ($action === 'delete_salary') {
 }
 
 if ($action === 'process_salaries') {
-    $month = esc($_GET['month'] ?? date('Y-m'));
+    $month = $conn->real_escape_string($_GET['month'] ?? date('Y-m'));
     $result = $conn->query("SELECT * FROM employee_salaries WHERE is_active = 1");
     $processed = 0;
     $total = 0;
@@ -431,7 +452,7 @@ if ($action === 'process_salaries') {
         if ($check->num_rows === 0) {
             $stmt = $conn->prepare("INSERT INTO salary_payments (employee_id, salary_id, month, gross_salary, total_deductions, net_salary, status, payment_date, recorded_by) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)");
             $ded = floatval($salary['deductions']);
-            $stmt->bind_param("iisddddsi", $employee_id, $salary['id'], $month, $gross, $ded, $net, $payment_date, $recorded_by);
+            $stmt->bind_param("iisdddsi", $employee_id, $salary['id'], $month, $gross, $ded, $net, $payment_date, $recorded_by);
             $stmt->execute();
             $processed++;
         }

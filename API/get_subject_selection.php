@@ -57,13 +57,16 @@ while ($row = $pendingResult->fetch_assoc()) {
     $pending[] = $row;
 }
 
+$max_setting = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'max_optional_subjects'")->fetch_assoc();
+$max_optional = (int)($max_setting['setting_value'] ?? 7);
+
 $available = [];
 if ($grade_id > 0 && count($approved) === 0 && count($pending) === 0) {
     $availableResult = $conn->query("
-        SELECT id, subject_name
+        SELECT id, subject_name, is_compulsory
         FROM subjects
         WHERE grade_id = $grade_id
-        ORDER BY subject_name
+        ORDER BY is_compulsory DESC, subject_name
     ");
     while ($row = $availableResult->fetch_assoc()) {
         $available[] = $row;
@@ -75,6 +78,7 @@ echo json_encode([
     "student" => $student,
     "approved_subjects" => $approved,
     "pending_subjects" => $pending,
-    "available_subjects" => $available
+    "available_subjects" => $available,
+    "max_optional_subjects" => $max_optional
 ]);
 ?>

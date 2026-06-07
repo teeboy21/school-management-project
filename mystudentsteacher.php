@@ -39,6 +39,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'teacher') {
                                 <th>Name</th>
                                 <th>Phone</th>
                                 <th>Grade</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="teacherStudentsTable"></tbody>
@@ -57,7 +58,7 @@ let students = [];
 
 function renderStudents(rows) {
     if (!rows.length) {
-        teacherStudentsTable.innerHTML = `<tr><td colspan="4">No students found.</td></tr>`;
+        teacherStudentsTable.innerHTML = `<tr><td colspan="5">No students found.</td></tr>`;
         return;
     }
     teacherStudentsTable.innerHTML = rows.map(row => `
@@ -66,6 +67,10 @@ function renderStudents(rows) {
             <td>${row.fullname ?? ""}</td>
             <td>${row.numbers ?? ""}</td>
             <td>${row.gradename ?? "Unassigned"}</td>
+            <td>
+                ${row.numbers ? `<a href="tel:${row.numbers.replace(/[^0-9+]/g,'')}" class="btn btn-small btn-primary" style="text-decoration:none;">Call</a> ` : ''}
+                ${row.email ? `<a href="mailto:${row.email}" class="btn btn-small btn-secondary" style="text-decoration:none;">Email</a>` : ''}
+            </td>
         </tr>
     `).join("");
 }

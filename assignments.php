@@ -209,7 +209,7 @@ function createFormHTML(subjects) {
                 <label>Subject</label>
                 <select name="subject_id" id="inp_subject" required>
                     <option value="">Select subject</option>
-                    ${subjects.map(s => `<option value="${s.id}">${s.subject_name}</option>`).join("")}
+                    ${subjects.map(s => `<option value="${s.id}">${s.subject_name}${s.grade_name ? ' — ' + s.grade_name : ''}</option>`).join("")}
                 </select>
             </div>
             <div>

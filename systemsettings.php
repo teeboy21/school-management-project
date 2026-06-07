@@ -50,7 +50,8 @@ const categories = {
     general: { label: 'General', icon: '⚙️' },
     registration: { label: 'Registration', icon: '📝' },
     modules: { label: 'Modules', icon: '📦' },
-    security: { label: 'Security', icon: '🔒' }
+    security: { label: 'Security', icon: '🔒' },
+    academics: { label: 'Academics', icon: '📚' }
 };
 
 let settingsData = {};

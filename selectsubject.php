@@ -56,26 +56,35 @@ function renderBadgeList(items) {
     return items.map(item => `<span class="badge">${item.subject_name}</span>`).join("");
 }
 
-function renderAvailableForm(subjects) {
+function renderAvailableForm(subjects, maxOptional) {
     if (!subjects.length) {
         subjectContent.innerHTML = `<div class="empty-state">No subjects are configured for your grade yet.</div>`;
         return;
     }
 
+    const compulsory = subjects.filter(s => Number(s.is_compulsory) === 1);
+    const optional = subjects.filter(s => Number(s.is_compulsory) !== 1);
+
     subjectContent.innerHTML = `
+        <div style="margin-bottom:15px;">
+            <strong>Compulsory Subjects</strong> (auto-included)
+            <div style="margin-top:8px;">${compulsory.map(s => `<span class="badge">${s.subject_name}</span>`).join(' ')}</div>
+        </div>
         <form id="subjectSelectionForm">
+            <p style="margin-bottom:10px;">Select up to <strong>${maxOptional}</strong> optional subjects:</p>
+            <p id="selectionCount" style="font-size:13px;color:var(--app-muted);margin-bottom:15px;">0 of ${maxOptional} selected</p>
             <div class="cards-grid">
-                ${subjects.map(subject => `
+                ${optional.map(subject => `
                     <label class="content-card" style="cursor:pointer;">
                         <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
                             <div>
                                 <h3 style="margin:0 0 8px;">${subject.subject_name}</h3>
                                 <p style="margin:0;">Select this subject if you want it included in your application.</p>
                             </div>
-                            <span class="badge">Available</span>
+                            <span class="badge">Optional</span>
                         </div>
                         <div class="page-actions">
-                            <input type="checkbox" name="subjects[]" value="${subject.id}">
+                            <input type="checkbox" name="subjects[]" value="${subject.id}" onchange="updateSelectionCount(${maxOptional})">
                         </div>
                     </label>
                 `).join("")}
@@ -89,6 +98,11 @@ function renderAvailableForm(subjects) {
     document.getElementById("subjectSelectionForm").addEventListener("submit", function (event) {
         event.preventDefault();
         const selected = Array.from(document.querySelectorAll('input[name="subjects[]"]:checked')).map(input => Number(input.value));
+
+        if (selected.length > maxOptional) {
+            showToast("You can select at most " + maxOptional + " optional subjects", "error");
+            return;
+        }
 
         fetch("API/submit_subject_selection.php", {
             method: "POST",
@@ -105,6 +119,12 @@ function renderAvailableForm(subjects) {
         })
         .catch(error => showToast(error.message, "error"));
     });
+}
+
+function updateSelectionCount(maxOptional) {
+    const count = document.querySelectorAll('input[name="subjects[]"]:checked').length;
+    const el = document.getElementById('selectionCount');
+    if (el) el.textContent = count + ' of ' + maxOptional + ' selected';
 }
 
 function loadSelectionState() {
@@ -150,7 +170,7 @@ function loadSelectionState() {
             return;
         }
 
-        renderAvailableForm(available);
+        renderAvailableForm(available, response.max_optional_subjects || 7);
     })
     .catch(error => {
         subjectContent.innerHTML = `<div class="empty-state">Failed to load subject selection.</div>`;

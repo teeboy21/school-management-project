@@ -114,7 +114,7 @@ function renderStudents(items) {
     }
     tb.innerHTML = items.map(s => `<tr>
         <td><div class="student-card"><strong>${s.fullname||''}</strong><span class="muted">${s.email||''}</span></div></td>
-        <td><div class="student-card"><span>Grade ${s.grade||''}</span></div></td>
+        <td><div class="student-card"><span> ${s.grade||''}</span></div></td>
         <td><div class="student-card"><strong>${s.parent_name||'No parent name'}</strong><span class="muted">${s.parent_phone||'No phone'}</span><span class="muted">${s.relationship||''}</span></div></td>
         <td><div class="stack">
             <button class="approve-btn" onclick="approveStudent(${s.user_id})">Approve</button>

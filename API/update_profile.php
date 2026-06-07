@@ -13,37 +13,53 @@ if (!$user_id) {
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
-$phone = $data['phone'] ?? '';
-$address = $data['address'] ?? '';
+if (!$data) {
+    echo json_encode(["status" => "error", "message" => "Invalid request data"]);
+    exit;
+}
 
-$phone = $conn->real_escape_string($phone);
-$address = $conn->real_escape_string($address);
+$fields = [];
+$params = [];
+$types = "";
 
-$updated = false;
+if (array_key_exists('phone', $data)) {
+    $fields[] = "phone = ?";
+    $params[] = $data['phone'];
+    $types .= "s";
+}
+if (array_key_exists('address', $data)) {
+    $fields[] = "address = ?";
+    $params[] = $data['address'];
+    $types .= "s";
+}
+
+if (empty($fields)) {
+    echo json_encode(["status" => "error", "message" => "No fields to update"]);
+    exit;
+}
+
+$params[] = $user_id;
+$types .= "i";
 
 if (in_array($role, ['student'])) {
-    $stmt = $conn->prepare("UPDATE students SET phone = ?, address = ? WHERE user_id = ?");
-    $stmt->bind_param("ssi", $phone, $address, $user_id);
-    if ($stmt->execute()) $updated = true;
-    $stmt->close();
+    $table = 'students';
 } elseif (in_array($role, ['teacher'])) {
-    $stmt = $conn->prepare("UPDATE teachers SET phone = ?, address = ? WHERE user_id = ?");
-    $stmt->bind_param("ssi", $phone, $address, $user_id);
-    if ($stmt->execute()) $updated = true;
-    $stmt->close();
+    $table = 'teachers';
 } elseif (in_array($role, ['admin', 'principal', 'hr_manager', 'finance_manager', 'it_technician'])) {
-    $stmt = $conn->prepare("UPDATE employees SET phone = ?, address = ? WHERE user_id = ?");
-    $stmt->bind_param("ssi", $phone, $address, $user_id);
-    if ($stmt->execute()) $updated = true;
-    $stmt->close();
+    $table = 'employees';
 } else {
     echo json_encode(["status" => "error", "message" => "Unsupported role"]);
     exit;
 }
 
-if ($updated) {
-    log_audit($conn, $user_id, 'profile_updated', 'system', 'user', $user_id, ['fields' => 'phone,address']);
+$sql = "UPDATE $table SET " . implode(", ", $fields) . " WHERE user_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param($types, ...$params);
+
+if ($stmt->execute()) {
+    log_audit($conn, $user_id, 'profile_updated', 'system', 'user', $user_id, ['fields' => implode(',', array_keys($data))]);
     echo json_encode(["status" => "success", "message" => "Profile updated"]);
 } else {
     echo json_encode(["status" => "error", "message" => "No changes made or user not found"]);
 }
+$stmt->close();

@@ -75,26 +75,24 @@ if ($pending_count > 0) {
 
 $selected = array_values(array_unique(array_map('intval', array_filter($selected))));
 
-if (empty($selected)) {
-    http_response_code(400);
-    echo json_encode([
-        "status" => "error",
-        "message" => "Select at least one subject before submitting"
-    ]);
-    exit;
-}
-
 $allowed = [];
 $allowedResult = $conn->query("
-    SELECT id
+    SELECT id, is_compulsory
     FROM subjects
     WHERE grade_id = $grade_id
 ");
+$compulsory_ids = [];
 while ($row = $allowedResult->fetch_assoc()) {
     $allowed[] = (int) $row['id'];
+    if ((int)$row['is_compulsory'] === 1) {
+        $compulsory_ids[] = (int) $row['id'];
+    }
 }
 
-foreach ($selected as $subject_id) {
+// Auto-include compulsory subjects
+$all_selected = array_unique(array_merge($selected, $compulsory_ids));
+
+foreach ($all_selected as $subject_id) {
     if (!in_array($subject_id, $allowed, true)) {
         http_response_code(400);
         echo json_encode([
@@ -105,6 +103,28 @@ foreach ($selected as $subject_id) {
     }
 }
 
+$optional_selected = array_diff($selected, $compulsory_ids);
+$max_setting = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'max_optional_subjects'")->fetch_assoc();
+$max_optional = (int)($max_setting['setting_value'] ?? 7);
+
+if (count($optional_selected) > $max_optional) {
+    http_response_code(400);
+    echo json_encode([
+        "status" => "error",
+        "message" => "You can select at most $max_optional optional subjects"
+    ]);
+    exit;
+}
+
+if (empty($all_selected)) {
+    http_response_code(400);
+    echo json_encode([
+        "status" => "error",
+        "message" => "Select at least one subject before submitting"
+    ]);
+    exit;
+}
+
 $conn->query("DELETE FROM student_subject WHERE student_id = $user_id");
 
 $stmt = $conn->prepare("
@@ -112,7 +132,7 @@ $stmt = $conn->prepare("
     VALUES (?, ?, 'pending')
 ");
 
-foreach ($selected as $subject_id) {
+foreach ($all_selected as $subject_id) {
     $stmt->bind_param("ii", $user_id, $subject_id);
     $stmt->execute();
 }

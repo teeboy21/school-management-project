@@ -115,6 +115,15 @@ if ($action === 'submit_for_approval') {
 
     $workflow_id = find_workflow($conn, $ref_type, $amount);
     if (!$workflow_id) {
+        if ($ref_type === 'payroll') {
+            $conn->query("INSERT INTO approval_requests (module, reference_type, reference_id, workflow_id, amount, status, requested_by, notes)
+                          VALUES ('$ref_type', '$ref_type', $ref_id, 0, $amount, 'approved', $user_id, '$notes')");
+            $req_id = $conn->insert_id;
+            update_reference_status($conn, $ref_type, $ref_id, 'approved');
+            log_audit($conn, $user_id, 'auto_approved', 'approval', $ref_type, $ref_id, ['request_id' => $req_id, 'reason' => 'Payroll auto-approved']);
+            echo json_encode(["status" => "success", "message" => "Payroll approved", "request_id" => $req_id]);
+            exit;
+        }
         echo json_encode(["status" => "error", "message" => "No approval workflow configured for $ref_type"]);
         exit;
     }
